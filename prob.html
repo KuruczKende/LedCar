@@ -18,7 +18,7 @@ button {margin: 5px;padding: 5px 10px;}
 <body>
 
 <h3>ESP IP-cím:</h3>
-<input type="text" id="espIpInput" class="uin" placeholder="pl. 192.168.0.123" style="width:200px;">
+<input type="text" id="espIpInput" class="uin" placeholder="pl. 192.168.0.123" style="width:200px;" value="10.106.247.30" >
 
 <p>Bal oldal</p>
 <div id="leftColors"></div>
@@ -48,6 +48,7 @@ const leftSide = document.querySelector(".left");
 const rightSide = document.querySelector(".right");
 const car = document.getElementById("car");
 const underglowToggle = document.getElementById("underglowToggle");
+const speedSlid = document.getElementById("speed");
 const espIpInput = document.getElementById("espIpInput");
 
 let leftColors = ["#ff0000", "#0000ff"];
@@ -95,7 +96,7 @@ function send(side, idx, col) {
 
 function altColor(side, fun) {
   let cs = (side==="left") ? leftColors : rightColors;
-  if (fun === "+") {
+  if (fun === "+" && cs.length < 16) {
     cs.push("#ffffff");
     send(side, cs.length, "#ffffff");
   } else if (cs.length > 1) {
@@ -104,10 +105,27 @@ function altColor(side, fun) {
   }
   renderColorPickers(side);
 }
+function getStatus() {
+  let got = false; 
+  const ip = espIpInput.value.trim();
+  fetch(`http://${ip}/status`)
+    .then(res => res.json())
+    .then(data => {
+      console.log(data.status);
+	  got = true;
+    });
+	if(got){espIpInput.style.background = "#00FF00";}
+	else{espIpInput.style.background = "#FF0000";}
+}
+setInterval(getStatus, 2000);
 
 underglowToggle.addEventListener("change", () => {
   car.classList.toggle("underglow", underglowToggle.checked);
   send("underglow", underglowToggle.checked ? 1 : 0, "");
+});
+
+speedSlid.addEventListener("change", () => {
+  send("speed", speedSlid.value, "");
 });
 
 renderColorPickers("left");
