@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<title>Többszínű LED csík</title>
+<style>
+body {font-family: Arial, sans-serif;background: #222;color: #fff;text-align: center;padding: 20px;}
+button {margin: 5px;padding: 5px 10px;}
+.uin{box-shadow: 0 0 5px #ffffff, 0 0 10px #ffffff;border-radius: 5px;border-width: 0px;}
+.car {position: relative;margin: 40px auto;width: 200px;height: 400px;background: #555;border-radius: 20px;box-shadow: 0 0 10px #000;transition: box-shadow 0.3s;}
+.car.underglow {box-shadow:0 0 10px #000,0 0 20px white,0 0 40px white;}
+.side {position: absolute;width: 20px;height: 100%;top: 0;transition: background 0.2s;}
+.side::before {content: "";position: absolute;top: 0;left: 0;width: 100%;height: 100%;border-radius: inherit;filter: blur(30px);opacity: 2;z-index: -1;background: inherit;box-shadow: 0 0 10px currentColor, 0 0 30px currentColor;}
+.left {left: -20px;border-radius: 10px 0 0 10px;}
+.right {right: -20px;border-radius: 0 10px 10px 0;}
+</style>
+</head>
+<body>
+
+<h3>ESP IP-cím:</h3>
+<input type="text" id="espIpInput" class="uin" placeholder="pl. 192.168.0.123" style="width:200px;">
+
+<p>Bal oldal</p>
+<div id="leftColors"></div>
+<button class="uin" onclick="altColor('left','+')">+ Hozzáadás</button>
+<button class="uin" onclick="altColor('left','-')">- Törlés</button>
+
+<p>Jobb oldal</p>
+<div id="rightColors"></div>
+<button class="uin" onclick="altColor('right','+')">+ Hozzáadás</button>
+<button class="uin" onclick="altColor('right','-')">- Törlés</button>
+
+<p>Egyéb</p>
+<input type="checkbox" id="underglowToggle">
+<label for="underglowToggle">Alvilágítás</label>
+<input type="range" min="1" max="100" value="50" id="speed">
+<label for="speed">Sebesség</label>
+
+<div class="car" id="car">
+<div class="side left"></div>
+<div class="side right"></div>
+</div>
+
+<script>
+const leftColorsDiv = document.getElementById("leftColors");
+const rightColorsDiv = document.getElementById("rightColors");
+const leftSide = document.querySelector(".left");
+const rightSide = document.querySelector(".right");
+const car = document.getElementById("car");
+const underglowToggle = document.getElementById("underglowToggle");
+const espIpInput = document.getElementById("espIpInput");
+
+let leftColors = ["#ff0000", "#0000ff"];
+let rightColors = ["#00ff00", "#ffff00"];
+
+function updateGradient(side) {
+  const colors = side === "left" ? leftColors : rightColors;
+  const gradient = `linear-gradient(to bottom, ${colors.join(", ")})`;
+  if (side === "left") {
+    leftSide.style.background = gradient;
+  } else {
+    rightSide.style.background = gradient;
+  }
+}
+
+function renderColorPickers(side) {
+  const container = side === "left" ? leftColorsDiv : rightColorsDiv;
+  const colors = side === "left" ? leftColors : rightColors;
+
+  container.innerHTML = "";
+  colors.forEach((color, index) => {
+    const input = document.createElement("input");
+    input.type = "color";
+    input.value = color;
+    input.addEventListener("input", () => {
+      colors[index] = input.value;
+      updateGradient(side);
+      send(side, index+1, input.value);
+    });
+    input.className = "uin";
+    container.appendChild(input);
+  });
+  updateGradient(side);
+}
+
+function send(side, idx, col) {
+  const ip = espIpInput.value.trim();
+  if (!ip) {
+    console.warn("Nincs beírva az ESP IP-címe!");
+    return;
+  }
+  const url = `http://${ip}/?side=${side}&idx=${idx}&color=${encodeURIComponent(col)}`;
+  fetch(url).catch(err => console.error("Hiba a küldésnél:", err));
+}
+
+function altColor(side, fun) {
+  let cs = (side==="left") ? leftColors : rightColors;
+  if (fun === "+") {
+    cs.push("#ffffff");
+    send(side, cs.length, "#ffffff");
+  } else if (cs.length > 1) {
+    cs.pop();
+    send(side, -1, "");
+  }
+  renderColorPickers(side);
+}
+
+underglowToggle.addEventListener("change", () => {
+  car.classList.toggle("underglow", underglowToggle.checked);
+  send("underglow", underglowToggle.checked ? 1 : 0, "");
+});
+
+renderColorPickers("left");
+renderColorPickers("right");
+</script>
+
+</body>
+</html>
