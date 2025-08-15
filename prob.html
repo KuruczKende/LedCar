@@ -112,10 +112,12 @@ function getStatus() {
     .then(res => res.json())
     .then(data => {
       console.log(data.status);
-	  got = true;
+      espIpInput.style.background = "#00FF00"; // siker
+    })
+    .catch(err => {
+      console.error(err);
+      espIpInput.style.background = "#FF0000"; // hiba
     });
-	if(got){espIpInput.style.background = "#00FF00";}
-	else{espIpInput.style.background = "#FF0000";}
 }
 setInterval(getStatus, 2000);
 
